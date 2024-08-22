@@ -400,6 +400,10 @@ export default defineConfig({
             text: "Check your Binaries",
             link: "/build/guides/checking-your-binaries",
           },
+          {
+            text: "Checking data on DA",
+            link: "/build/guides/checking-data-da",
+          },
         ],
       },
       {
