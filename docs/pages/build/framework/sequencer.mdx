@@ -53,7 +53,7 @@ export class RandomStrategy extends BaseStrategy {
    * Create a new instance of RandomStrategy
    */
   constructor() {
-    super('RandomOrder');
+    super("RandomOrder");
   }
 
   /**
@@ -66,7 +66,7 @@ export class RandomStrategy extends BaseStrategy {
     return Promise.resolve(
       actions.sort(() => {
         return 0.5 - Math.random();
-      }),
+      })
     );
   }
 }

@@ -234,6 +234,10 @@ export default defineConfig({
             link: "/build/guides/community-examples",
           },
           {
+            text: "Community Integrations",
+            link: "/build/guides/community-integrations",
+          },
+          {
             text: "Tutorials",
             collapsed: true,
             items: [

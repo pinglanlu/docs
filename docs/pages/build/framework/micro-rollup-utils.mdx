@@ -98,18 +98,18 @@ Query and fetch list of actions along with their block data (if applicable) from
 
 - `filters`: Fields to filter on.
 
-    ```ts
-    interface ActionFilterParams {
-      name?: string;
-      schemaIdentifier?: string;
-      executionStatus?: ActionExecutionStatus | ActionExecutionStatus[];
-      confirmationStatus?: ActionConfirmationStatus | ActionConfirmationStatus[];
-      block?: {
-        status?: BlockStatus;
-        isReverted?: boolean;
-      };
-    }
-    ```
+  ```ts
+  interface ActionFilterParams {
+    name?: string;
+    schemaIdentifier?: string;
+    executionStatus?: ActionExecutionStatus | ActionExecutionStatus[];
+    confirmationStatus?: ActionConfirmationStatus | ActionConfirmationStatus[];
+    block?: {
+      status?: BlockStatus;
+      isReverted?: boolean;
+    };
+  }
+  ```
 
 - `orderAsc`: Whether the actions should be sorted in ascending or descending order of block height and position in block. Defaults to ascending order.
 
