@@ -18,7 +18,7 @@ It has nifty features like:
 
 Once you're initialised your micro-rollup, you can activate the Playground Plugin.
 
-```ts [index.ts]
+```ts [mru.ts]
 // [!code word:Playground]
 import { Playground } from "@stackr/sdk/plugins";
 
@@ -65,7 +65,7 @@ While developing playground, we realized that you might need more endpoints to i
 
 You can add custom `GET` endpoints to the Playground Plugin. The only condition being it should start with `/custom/`.
 
-```ts [index.ts]
+```ts [mru.ts]
 const playground = Playground.init(rollup);
 
 // [!code word:addGetMethod]
