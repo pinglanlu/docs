@@ -43,38 +43,39 @@ This is done by defining a new class that extends `BaseStrategy` class with the 
 :::code-group
 
 ```ts [strategy.ts]
-import { BaseStrategy, Action } from "@stackr/sdk";
+import { AcknowledgedAction, BaseStrategy, Keccak256 } from "@stackr/sdk";
 
 /**
- * RandomStrategy is responsible for ordering actions in a random order.
+ * TimestampOrderStrategy is responsible for ordering actions based on timestamp.
  */
-export class RandomStrategy extends BaseStrategy {
+export class TimestampOrderStrategy extends BaseStrategy {
   /**
-   * Create a new instance of RandomStrategy
+   * Create a new instance of TimestampOrderStrategy
    */
   constructor() {
-    super("RandomOrder");
+    super("TimestampOrder");
   }
 
   /**
-   * Custom ordering logic for actions
-   * returns the actions in a random order
+   * Returns the action hashes in chronological order of timestamp.
    * @param actions - Unordered List of actions
-   * @returns - Ordered list of actions
+   * @returns - Ordered list of action hashes
    */
-  async getOrderedActions(actions: Action[]): Promise<Action[]> {
-    return Promise.resolve(
-      actions.sort(() => {
-        return 0.5 - Math.random();
-      })
+  async getOrderedActions(
+    actions: Readonly<AcknowledgedAction[]>
+  ): Promise<Keccak256[]> {
+    const orderedActions = actions.sort(
+      (a, b) => a.acknowledgement.timestamp - b.acknowledgement.timestamp
     );
+    const orderedActionHashes = orderedActions.map(({ action }) => action.hash);
+    return orderedActionHashes;
   }
 }
 ```
 
 ```ts [rollup.ts]
 // use the custom strategy class in your Micro-Rollup
-rollup.sequencer.setStrategy(new RandomStrategy());
+rollup.sequencer.setStrategy(new TimestampOrderStrategy());
 ```
 
 :::
