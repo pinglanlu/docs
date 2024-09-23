@@ -1,3 +1,5 @@
+import { Callout } from "vocs/components";
+
 # State Transition Functions [Transitioning between states]
 
 State transitions are the functions that move the state machine from one state to another. These contain the logic of the application and determine how the state machine will move from one state to another based on the inputs.
@@ -8,23 +10,48 @@ Stackr provides a toolkit to create state transition functions.
 
 A basic transition function in Stackr looks like this:
 
-```typescript
-import { STF, Transitions } from "@stackr/sdk/machine";
-import { CounterState } from "./machine";
+```tsx twoslash [transitions.ts]
+// @noErrors
+type MachineState = unknown;
+interface Hook<MachineState> {
+  handler: (props: {
+    state: MachineState;
+    block: {
+      height: number;
+      timestamp: number;
+      parentHash: BytesLike;
+    };
+    emit: (ExecutionLog) => void; 
+  }) => MachineState;
+}
+const CounterState = {
+  STF: (params: { schema: unknown, handler: Args<CounterState> }) => r as Transition<CounterState, unknown>;
+}
+// ---cut---
+import { SolidityType, Transitions } from "@stackr/sdk/machine";
+import { CounterState } from "./state";
 
-const increment: STF<CounterState> = {
+// Note that you should declare schema "as const", if not defining them in place.
+// This prevents the types not being inferred correctly.
+const schema = {
+  timestamp: SolidityType.UINT,
+} as const;
+
+const increment = CounterState.STF({
+  schema,
   handler: ({ state }) => {
     state += 1;
     return state;
   },
-};
+});
 
-const decrement: STF<CounterState> = {
+const decrement = CounterState.STF({
+  schema,
   handler: ({ state }) => {
     state -= 1;
     return state;
   },
-};
+});
 
 export const transitions: Transitions<CounterState> = {
   increment,
@@ -38,27 +65,153 @@ In the above example, we have two transition functions `increment` and `decremen
 
 The most important part of the transition function is the `handler` function. This function takes the current state and any other input as arguments and returns the new state. There are several inputs that handler receives which are discussed in the next section. However the most important thing to note here is that the handler function should be a pure function. It should not have any side effects and should only depend on the inputs.
 
-## Mutating the State
+### Mutating the State
 
 The state is passed as a reference to the handler function. This means that you can directly mutate the state inside the handler function. Once the operations on the state are complete, you must return the new state otherwise the state machine will not apply the changes to the state
 
-## STF is a pure function
+### STF is a pure function
 
 The transition function is a pure function. This means that it should not have any side effects and should only depend on the inputs. This is important because the state is verified by Vulcan after the block is sent to it. Vulcan can only run the STF inside a sandboxed environment and cannot run any async operations or access the network or perform any side effects.
 
 ## Passing Inputs to an STF
 
-The state transition functions accept inputs, which is available through the `inputs` argument on the handler. These inputs are derived through which `ActionSchema` was used to trigger the STF.
+Each STF must have a `schema` defined which represents the type definition for the user inputs accepted by the transition function. These are then available via the `inputs` argument on the handler.
 
 ```tsx [transitions.ts]
-const increment: STF<CounterState> = {
+const increment = CounterState.STF({
+  // [!code word:schema]
+  schema: {
+    amount: SolidityType.UINT,
+  },
   // [!code word:inputs]
   handler: ({ state, inputs }) => {
     state += inputs.amount;
     return state;
   },
-};
+});
 ```
+
+The schema is a key-value object where key is the field name and value being the Solidity type to use for encoding the field's value. The supported types are:
+
+- `address`
+- `bool`
+- `bytes`
+- `bytes32`
+- `string`
+- `uint256`
+
+The solidity types can be accessed using the `SolidityType` enum provided with the SDK.
+
+{/* prettier-ignore */}
+```typescript twoslash [transitions.ts]
+export enum SolidityType {
+  ADDRESS = 'Address',
+  BOOL = 'Bool',
+  BYTES = 'Bytes',
+  BYTES32 = 'Bytes32',
+  STRING = 'String',
+  UINT = 'Uint',
+}
+// ---cut---
+// @noErrors
+import { SolidityType } from "@stackr/sdk/machine";
+
+const schema = {
+  "<INPUT_FIELD_NAME>": SolidityType.
+  //                                 ^|
+} as const;
+
+
+
+```
+
+The reason to use Solidity types here is so the SDK can generate equivalent EIP-712 types for signing purposes.
+
+### Examples
+
+<Callout type="note">
+
+:::details[Simple Counter]
+For a simple counter application, the transition schema can be defined as follows:
+
+```ts [counter/src/transitions.ts]
+import { SolidityType } from "@stackr/sdk/machine";
+
+const updateCountSchema = {
+  amount: SolidityType.UINT,
+} as const;
+```
+
+This schema just has one field `amount` which is of type `uint256`. This can be used to update the count in the counter application.
+
+<Callout type="info">
+  Note that the same schema can be used to increment or decrement the count.
+  It's just the `STF` or state transition function that decides how to handle
+  the action.
+</Callout>
+
+If you pass the same schema to increment transition function, it will increment the count by the amount passed in the action. Similarly, if you pass the same schema to decrement transition function, it will decrement the count by the amount passed in the action.
+:::
+
+:::details[CRUD Application]
+
+```ts [crud/src/transitions.ts]
+import { SolidityType } from "@stackr/sdk/machine";
+
+const createEntitySchema = {
+  name: SolidityType.STRING,
+  age: SolidityType.UINT,
+  email: SolidityType.STRING,
+} as const;
+
+const updateEntitySchema = {
+  id: SolidityType.UINT,
+  name: SolidityType.STRING,
+  age: SolidityType.UINT,
+  email: SolidityType.STRING,
+} as const;
+
+const deleteEntitySchema = {
+  id: SolidityType.UINT,
+} as const;
+```
+
+:::
+
+:::details[Token Transfer ERC-20]
+
+```ts [token/src/transitions.ts]
+import { SolidityType } from "@stackr/sdk/machine";
+
+const transferSchema = {
+  to: SolidityType.ADDRESS,
+  amount: SolidityType.UINT,
+} as const;
+
+const approveSchema = {
+  spender: SolidityType.ADDRESS,
+  amount: SolidityType.UINT,
+} as const;
+
+const transferFromSchema = {
+  from: SolidityType.ADDRESS,
+  to: SolidityType.ADDRESS,
+  amount: SolidityType.UINT,
+} as const;
+
+const mintSchema = {
+  to: SolidityType.ADDRESS,
+  amount: SolidityType.UINT,
+} as const;
+
+const burnSchema = {
+  amount: SolidityType.UINT,
+} as const;
+```
+
+:::
+
+</Callout>
 
 ## Variables available inside an STF
 
@@ -69,9 +222,9 @@ There are 6 special variables which always exist inside the handler of the State
 3. `inputs`
 4. `signature`
 5. `block`
-    - `block.height`
-    - `block.timestamp`
-    - `block.parentHash`
+   - `block.height`
+   - `block.timestamp`
+   - `block.parentHash`
 6. `emit`
 
 {/* prettier-ignore */}
@@ -79,24 +232,29 @@ There are 6 special variables which always exist inside the handler of the State
 // @noErrors
 type MachineState = unknown;
 type InputTypes = any;
-
-interface STF<MachineState, InputTypes> {
-  handler: (props: {
-    state: MachineState;
-    msgSender: string;
-    inputs: InputTypes;
-    signature: string;
-    block: {
-      height: number;
-      timestamp: number;
-      parentHash: BytesLike;
-    };
-    emit: (ExecutionLog) => void; 
-  }) => MachineState;
+type HandlerProps = {
+  state: MachineState;
+  msgSender: string;
+  inputs: InputTypes;
+  signature: string;
+  block: {
+    height: number;
+    timestamp: number;
+    parentHash: BytesLike;
+  };
+  emit: (ExecutionLog) => void;
+}
+interface Transition<MachineState, InputTypes> {
+  schema: SchemaType,
+  handler: (props: HandlerProps) => MachineState;
+}
+const CounterState = {
+  STF: (params: Transition<MachineState, InputTypes>) => params as Transition<MachineState, InputTypes>;
 }
 // ---cut---
 // Without Destructuring
-const superCoolStf: STF<MachineState, InputTypes> = {
+const superCoolStf = CounterState.STF({
+  schema,
   handler: (props) => {
     const state = props.
     //                  ^|
@@ -107,15 +265,16 @@ const superCoolStf: STF<MachineState, InputTypes> = {
     const height = props.block.
     //                         ^|
   },
-};
+});
 
 
 // With Destructuring
-const anotherSuperCoolStf: STF<MachineState, InputTypes> = {
+const anotherSuperCoolStf = CounterState.STF({
+  schema,
   handler: ({ s }) => {
     //         ^|
   },
-};
+});
 ```
 
 ### State
@@ -132,7 +291,7 @@ When an action is dispatched, the inputs are passed to the state transition func
 
 1. `msgSender` : The address of the sender of the transaction.
 
-2. `inputs` : The inputs passed to the action schema.
+2. `inputs` : The inputs passed as per the schema.
 
 3. `signature` : The signature of the msgSender on the inputs.
 
@@ -152,19 +311,20 @@ A `block` object containing the current block height, timestamp and the parent b
 
 ### Custom Execution Logs
 
-The `emit` variable passed to STF is a method that can be used to record custom execution logs (later accessible at [`action.logs`](/build/framework/action/serialized-action#actionlogs)).
+The `emit` variable passed to STF is a method that can be used to record custom execution logs (later accessible at [`action.logs`](/build/framework/type-definitions#serializedaction)).
 
 Example usage:
 
 ```tsx [transitions.ts]
-const increment: STF<CounterState> = {
+const increment = CounterState.STF({
+  schema,
   // [!code word:emit]
   handler: ({ state, inputs, emit }) => {
     state += inputs.amount;
     emit({ name: "incremented", value: inputs.amount });
     return state;
   },
-};
+});
 ```
 
 ## Bonus: Pseudo-Random Number Generation

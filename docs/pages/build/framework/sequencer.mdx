@@ -43,7 +43,12 @@ This is done by defining a new class that extends `BaseStrategy` class with the 
 :::code-group
 
 ```ts [strategy.ts]
-import { AcknowledgedAction, BaseStrategy, Keccak256 } from "@stackr/sdk";
+import {
+  AcknowledgedAction,
+  BaseStrategy,
+  ChainData,
+  Keccak256,
+} from "@stackr/sdk";
 
 /**
  * TimestampOrderStrategy is responsible for ordering actions based on timestamp.
@@ -62,7 +67,8 @@ export class TimestampOrderStrategy extends BaseStrategy {
    * @returns - Ordered list of action hashes
    */
   async getOrderedActions(
-    actions: Readonly<AcknowledgedAction[]>
+    actions: Readonly<AcknowledgedAction[]>,
+    _chainData: Readonly<ChainData>
   ): Promise<Keccak256[]> {
     const orderedActions = actions.sort(
       (a, b) => a.acknowledgement.timestamp - b.acknowledgement.timestamp

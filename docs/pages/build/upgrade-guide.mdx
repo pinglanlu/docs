@@ -4,9 +4,106 @@ import { Callout } from "vocs/components";
 
 This page has instructions on upgrading your Micro-Rollup to a specific or latest versions of the Stackr SDK and CLI.
 
+## Upgrading to v0.6.0
+
+This release introduces breaking changes in how to write action schemas, state transition functions, and creating and submitting an action.
+
+1. Changes in writing action schemas and STFs:
+
+   :::code-group
+
+   ```ts [before v0.6.0]
+   // schemas.ts
+   const UpdateCounterSchema = new ActionSchema("update-counter", {
+     amount: SolidityType.UINT,
+   });
+
+   // transitions.ts
+   const increment: STF<CounterState, { amount: number }> = {
+     handler: ({ state, inputs }) => {
+       state += inputs.amount;
+       return state;
+     },
+   };
+
+   // index.ts
+   const mru = await MicroRollup({
+     config: stackrConfig,
+     actionSchemas: [UpdateCounterSchema],
+     stateMachines: [machine],
+     stfSchemaMap: {
+       increment: UpdateCounterSchema,
+     },
+   });
+   ```
+
+   ```ts [after v0.6.0]
+   // transitions.ts
+   const increment = CounterState.STF({
+     schema: {
+       amount: SolidityType.UINT,
+     },
+     handler: ({ state, inputs }) => {
+       state += inputs.amount; // input types are now automatically inferred from schema
+       return state;
+     },
+   });
+
+   // index.ts
+   const mru = await MicroRollup({
+     config: stackrConfig,
+     stateMachines: [machine],
+   });
+   ```
+
+   :::
+
+2. Changes in generating signature and creating/submitting an action:
+
+   :::code-group
+
+   ```ts [before v0.6.0]
+   const inputs = { amount: 1 };
+
+   const signature = await wallet.signTypedData(
+     UpdateCounterSchema.domain,
+     UpdateCounterSchema.EIP712TypedData.types,
+     inputs
+   );
+   const incrementAction = UpdateCounterSchema.actionFrom({
+     inputs,
+     signature,
+     msgSender: wallet.address,
+   });
+
+   await mru.submitAction("increment", incrementAction);
+   ```
+
+   ```ts [after v0.6.0]
+   const name = "increment";
+   const inputs = { amount: 1 };
+
+   const domain = mru.config.domain;
+   const types = mru.getStfSchemaMap()[name];
+   const signature = await wallet.signTypedData(domain, types, {
+     name,
+     inputs,
+   }); // signature is over both name and inputs now
+   const incrementActionParams = {
+     name,
+     inputs,
+     signature,
+     msgSender: wallet.address,
+   };
+
+   await mru.submitAction(incrementActionParams);
+   ```
+
+   :::
+
 ## Upgrading to v0.5.2
 
-This release introduces some changes in [`StackrConfig`](/build/framework/config) and [`MicroRollup`](/build/framework/micro-rollup).
+This release introduces some breaking changes in [`StackrConfig`](/build/framework/config) and [`MicroRollup`](/build/framework/micro-rollup).
 
 1. In your `stackr.config.ts` file,
 

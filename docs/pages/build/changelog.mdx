@@ -1,11 +1,34 @@
 # Changelog [What's new]
 
+## v0.6.0
+
+#### Breaking changes
+
+> See [upgrade guide](/build/upgrade-guide).
+
+- Add new `State.STF` and `State.Hook` static methods to define STFs and Hooks.
+- Remove `ActionSchema`. Input schemas are now [defined directly inside the STFs](/build/framework/state-machine/state-transitions#passing-inputs-to-an-stf).
+- Action signatures are now enforced over both STF name and inputs, as opposed to inputs only earlier.
+
+#### Bug Fixes
+
+- Fix a bug where if a custom sequencer strategy were to discard actions, they would get removed from the action pool. Such discarded actions, if any, are now re-enqueued to the front of the action pool.
+
+#### Improvements
+
+- Add `sdkVersion` field to [`ExternalConfig`](/build/framework/config#accessing-config-values).
+- Expose [`ChainData`](/build/framework/type-definitions#chaindata) in [`getOrderedActions`](/build/framework/sequencer#custom-ordering-strategy) method of a sequencer strategy for increased context.
+
+#### Other changes
+
+- Updates in [CLI](https://www.npmjs.com/package/@stackr/cli) `v0.1.8`, [ESLint Plugin](https://www.npmjs.com/package/@stackr/eslint-plugin) `v0.1.2` and Playground for the above breaking changes. (Use latest for both for compatibility)
+
 ## v0.5.5
 
 #### Breaking changes
 
-- The [`getOrderedActions`](/build/framework/sequencer#custom-ordering-strategy) method of a sequencer strategy now accepts a list of actions 
-as a `Readonly<AcknowledgedAction[]>` type and is supposed only to return the ordered list of action hashes as opposed to `Action` objects earlier.
+- The [`getOrderedActions`](/build/framework/sequencer#custom-ordering-strategy) method of a sequencer strategy now accepts a list of actions
+  as a `Readonly<AcknowledgedAction[]>` type and is supposed only to return the ordered list of action hashes as opposed to `Action` objects earlier.
 
 #### Bug Fixes
 
